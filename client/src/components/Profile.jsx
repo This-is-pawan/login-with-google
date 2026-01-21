@@ -4,10 +4,10 @@ const Profile = () => {
   const [user, setUser] = useState(null);
 
  const handleLogout = () => {
-    window.location.href = "http://localhost:4000/logout";
+    window.location.href = `${import.meta.env.VITE_URL}/logout`;
   };
   useEffect(() => {
-    fetch("http://localhost:4000/user/me", {
+    fetch(`${import.meta.env.VITE_URL}/user/me`, {
       credentials: "include",
     })
       .then(res => res.json())
