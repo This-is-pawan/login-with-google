@@ -1,9 +1,18 @@
 import { useEffect, useState } from "react";
+import axios from "axios";
+
+const API_URL = import.meta.env.VITE_URL;
 
 const Profile = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true); // loading state
   const [error, setError] = useState(null);
+
+  // ---------------- AXIOS INSTANCE ----------------
+  const axiosInstance = axios.create({
+    baseURL: API_URL,
+    withCredentials: true, // send cookies with requests
+  });
 
   // ---------------- LOGOUT ----------------
   const handleLogout = async () => {
@@ -12,26 +21,20 @@ const Profile = () => {
       localStorage.removeItem("accessToken");
 
       // Call backend to clear refresh token cookie
-      await fetch(`${import.meta.env.VITE_URL}/logout`, {
-        method: "POST",
-        credentials: "include",
-      });
+      await axiosInstance.post("/logout");
 
       // Redirect to home
       window.location.href = "/";
     } catch (err) {
-      console.error("Logout error:", err);
+      console.error("Logout error:", err.response || err);
     }
   };
 
   // ---------------- REFRESH ACCESS TOKEN ----------------
   const refreshAccessToken = async () => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_URL}/refresh`, {
-        method: "POST",
-        credentials: "include", // send refresh token cookie
-      });
-      const data = await res.json();
+      const res = await axiosInstance.post("/refresh");
+      const data = res.data;
 
       if (data.accessToken) {
         localStorage.setItem("accessToken", data.accessToken);
@@ -40,7 +43,7 @@ const Profile = () => {
         return null;
       }
     } catch (err) {
-      console.error("Refresh token error:", err);
+      console.error("Refresh token error:", err.response?.data || err);
       return null;
     }
   };
@@ -53,7 +56,6 @@ const Profile = () => {
     let token = localStorage.getItem("accessToken");
 
     if (!token) {
-      // Try refreshing token if not present
       token = await refreshAccessToken();
       if (!token) {
         setUser(null);
@@ -63,28 +65,25 @@ const Profile = () => {
     }
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_URL}/user/me`, {
+      const res = await axiosInstance.get("/user/me", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-      const data = await res.json();
+      const data = res.data;
 
       if (data.success) {
         setUser(data.user);
       } else if (data.message === "Invalid or expired token") {
         // Token expired → try refresh
         const newToken = await refreshAccessToken();
-        if (newToken) {
-          fetchUser(); // retry fetching user
-        } else {
-          setUser(null);
-        }
+        if (newToken) fetchUser(); // retry fetching user
+        else setUser(null);
       } else {
         setUser(null);
       }
     } catch (err) {
-      console.error("Fetch user error:", err);
+      console.error("Fetch user error:", err.response?.data || err);
       setUser(null);
       setError("Failed to fetch user data");
     } finally {

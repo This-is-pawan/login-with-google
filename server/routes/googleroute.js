@@ -5,7 +5,7 @@ const {
   generateAccessToken,
   generateRefreshToken,
 } = require("../utils/generateTokens");
-// const User = require("../models/User");
+
 
 // 🔐 GOOGLE LOGIN
 router.get(
@@ -41,7 +41,7 @@ router.get(
 
       // 🚀 Redirect frontend with access token
       res.redirect(
-        `${process.env.FRONTEND_URL}/auth-success?token=${accessToken}`
+        `${process.env.FRONTEND_URL}`
       );
     } catch (error) {
       console.error(error);
@@ -53,7 +53,7 @@ router.get(
 // 🔄 REFRESH ACCESS TOKEN
 router.post("/refresh", async (req, res) => {
   try {
-    const token = req.cookies.refreshToken;
+    const token = req?.cookies?.refreshToken;
     if (!token) return res.sendStatus(401);
 
     const payload = require("jsonwebtoken").verify(
