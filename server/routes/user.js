@@ -1,19 +1,13 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
-const User = require("../models/UserAuth");
+const GoogleUser = require("../models/UserAuth");
 
-const isrouter = express.Router();
+const router = express.Router();
 
-// 🔒 JWT AUTH MIDDLEWARE
 const isAuth = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      return res.status(401).json({
-        success: false,
-        message: "No token provided",
-      });
-    }
+    if (!authHeader) return res.sendStatus(401);
 
     const token = authHeader.split(" ")[1];
     const decoded = jwt.verify(token, process.env.ACCESS_SECRET);
@@ -21,23 +15,16 @@ const isAuth = async (req, res, next) => {
     req.userId = decoded.userId;
     next();
   } catch (err) {
-    return res.status(401).json({
-      success: false,
-      message: "Invalid or expired token",
-    });
+    res.sendStatus(401);
   }
 };
 
-// 👤 CURRENT LOGGED-IN USER (REAL WORLD)
-isrouter.get("/me", isAuth, async (req, res) => {
-  const user = await User.findById(req.userId).select(
-    "name email photo"
+router.get("/me", isAuth, async (req, res) => {
+  const user = await GoogleUser.findById(req.userId).select(
+    "name email photo role"
   );
 
-  res.json({
-    success: true,
-    user,
-  });
+  res.json({ success: true, user });
 });
 
-module.exports = isrouter;
+module.exports = router;

@@ -8,50 +8,36 @@ const GoogleUserSchema = new mongoose.Schema(
       unique: true,
       index: true,
     },
-
     name: {
       type: String,
       required: true,
       trim: true,
     },
-
     email: {
       type: String,
       required: true,
       unique: true,
       lowercase: true,
-      index: true,
     },
-
     photo: {
-      type: String, 
+      type: String,
       default: "",
     },
-
-    isVerified: {
-      type: Boolean,
-      default: true, 
-    },
-
-    provider: {
+    refreshToken: {
       type: String,
-      default: "google",
+      default: "",
     },
-
     role: {
       type: String,
       enum: ["user", "admin"],
       default: "user",
     },
-
     lastLogin: {
       type: Date,
       default: Date.now,
     },
   },
-  {
-    timestamps: true, 
-  }
+  { timestamps: true }
 );
-
-module.exports = mongoose.model("GoogleUser", GoogleUserSchema);
+const GoogleUser=mongoose.model("GoogleUser", GoogleUserSchema);
+module.exports = GoogleUser

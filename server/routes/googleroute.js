@@ -1,74 +1,85 @@
 const express = require("express");
 const passport = require("passport");
-const router = express.Router();
+const jwt = require("jsonwebtoken");
+const GoogleUser = require("../models/UserAuth");
 const {
   generateAccessToken,
   generateRefreshToken,
 } = require("../utils/generateTokens");
 
+const router = express.Router();
 
-// 🔐 GOOGLE LOGIN
+/* =========================
+   GOOGLE LOGIN
+========================= */
+
 router.get(
-  "/login-with-google",
+  "/login",
   passport.authenticate("google", {
     scope: ["profile", "email"],
+    session: false,
   })
 );
 
-// 🔁 GOOGLE CALLBACK
+/* =========================
+   GOOGLE CALLBACK
+========================= */
 router.get(
-  "/login-with-google/callback",
-  passport.authenticate("google", { session: false }),
+  "/callback",
+  passport.authenticate("google", {
+    session: false,
+    failureRedirect: "/login",
+  }),
   async (req, res) => {
     try {
       const user = req.user;
 
-      // 🔑 Generate tokens
       const accessToken = generateAccessToken(user._id);
       const refreshToken = generateRefreshToken(user._id);
 
-      // 💾 Save refresh token in DB
       user.refreshToken = refreshToken;
       await user.save();
 
-      // 🍪 Send refresh token as HTTP-only cookie
       res.cookie("refreshToken", refreshToken, {
         httpOnly: true,
-        secure: true,      // REQUIRED on Render / HTTPS
-        sameSite: "none",  // REQUIRED for cross-site
+        secure: true,
+        sameSite: "none",
         maxAge: 7 * 24 * 60 * 60 * 1000,
       });
 
-      // 🚀 Redirect frontend with access token
-      res.redirect(
-        `${process.env.FRONTEND_URL}`
-      );
-    } catch (error) {
-      console.error(error);
-      res.redirect(process.env.FRONTEND_URL + "/login");
+      res.redirect(`${process.env.FRONTEND_URL}/auth-success`);
+    } catch (err) {
+      console.error(err);
+      res.redirect(`${process.env.FRONTEND_URL}/login`);
     }
   }
 );
 
-// 🔄 REFRESH ACCESS TOKEN
+/* =========================
+   REFRESH TOKEN
+========================= */
 router.post("/refresh", async (req, res) => {
   try {
-    const token = req?.cookies?.refreshToken;
+    const token = req.cookies.refreshToken;
     if (!token) return res.sendStatus(401);
 
-    const payload = require("jsonwebtoken").verify(
-      token,
-      process.env.REFRESH_SECRET
-    );
+    const payload = jwt.verify(token, process.env.REFRESH_SECRET);
 
-    const newAccessToken = generateAccessToken(payload.userId);
+    const user = await GoogleUser.findById(payload.userId);
+    if (!user || user.refreshToken !== token) {
+      return res.sendStatus(403);
+    }
+
+    const newAccessToken = generateAccessToken(user._id);
     res.json({ accessToken: newAccessToken });
   } catch (err) {
     res.sendStatus(403);
   }
 });
 
-// 🚪 LOGOUT (REAL WORLD)
+/* =========================
+   LOGOUT
+========================= */
 router.post("/logout", async (req, res) => {
   res.clearCookie("refreshToken", {
     httpOnly: true,
