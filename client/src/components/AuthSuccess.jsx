@@ -16,7 +16,6 @@ const AuthSuccess = () => {
         } 
       } catch (err) {
         console.error("Auth success error:", err);
-        navigate("/login");
       }
     };
 

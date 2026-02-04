@@ -33,10 +33,11 @@ router.get(
   async (req, res) => {
     try {
       const user = req.user;
-
-      const accessToken = generateAccessToken(user._id);
+       generateAccessToken(user._id);
+  
       const refreshToken = generateRefreshToken(user._id);
-
+   
+      
       user.refreshToken = refreshToken;
       await user.save();
 
@@ -50,7 +51,7 @@ router.get(
       res.redirect(`${process.env.FRONTEND_URL}/auth-success`);
     } catch (err) {
       console.error(err);
-      res.redirect(`${process.env.FRONTEND_URL}/login`);
+      res.redirect(`${process.env.FRONTEND_URL}`);
     }
   }
 );
@@ -60,7 +61,7 @@ router.get(
 ========================= */
 router.post("/refresh", async (req, res) => {
   try {
-    const token = req.cookies.refreshToken;
+    const token = req?.cookies?.refreshToken;
     if (!token) return res.sendStatus(401);
 
     const payload = jwt.verify(token, process.env.REFRESH_SECRET);
