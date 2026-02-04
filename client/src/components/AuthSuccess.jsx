@@ -13,9 +13,7 @@ const AuthSuccess = () => {
         if (res.data.accessToken) {
           localStorage.setItem("accessToken", res.data.accessToken);
           navigate("/profile");
-        } else {
-          navigate("/login");
-        }
+        } 
       } catch (err) {
         console.error("Auth success error:", err);
         navigate("/login");
