@@ -9,7 +9,7 @@ const Profile = () => {
   const refreshAccessToken = async () => {
     try {
       const res = await axiosInstance.post("/api/google/refresh");
-      localStorage.setItem("accessToken", res.data.accessToken);
+
       return res.data.accessToken;
     } catch {
       return null;

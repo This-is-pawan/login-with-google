@@ -20,12 +20,10 @@ const AuthSuccess = () => {
 
         const accessToken = res?.data?.accessToken;
 
+
         if (accessToken && isMounted) {
           // ✅ store in memory
           setAuth({ accessToken });
-
-          // ✅ also persist for axios interceptor (important)
-          localStorage.setItem("accessToken", accessToken);
 
           navigate("/profile", { replace: true });
         }

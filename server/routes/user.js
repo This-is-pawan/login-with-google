@@ -10,13 +10,13 @@ const isAuth = (req, res, next) => {
     if (!authHeader) return res.sendStatus(401);
 
     const token = authHeader.split(" ")[1];
-    console.log(token)
+   
     
     if (!token) return res.sendStatus(401);
 
     const decoded = jwt.verify(token, process.env.ACCESS_SECRET);
 
-    // ✅ attach userId to request
+    //  attach userId to request
     req.userId = decoded.userId;
 
     next();
