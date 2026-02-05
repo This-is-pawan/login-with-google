@@ -13,31 +13,17 @@ const router = express.Router();
    GOOGLE LOGIN
 ========================= */
 
-router.get(
-  "/login",
-  passport.authenticate("google", {
-    scope: ["profile", "email"],
-    session: false,
-  })
-);
+router.get("/login",passport.authenticate("google", {scope: ["profile", "email"],session: false,}));
 
 /* =========================
    GOOGLE CALLBACK
 ========================= */
-router.get(
-  "/callback",
-  passport.authenticate("google", {
-    session: false,
-    failureRedirect: "/login",
-  }),
-  async (req, res) => {
+router.get("/callback",passport.authenticate("google", {session: false,failureRedirect: "/login",}),async (req, res) => {
     try {
       const user = req.user;
        generateAccessToken(user._id);
   
       const refreshToken = generateRefreshToken(user._id);
-   
-      
       user.refreshToken = refreshToken;
       await user.save();
 

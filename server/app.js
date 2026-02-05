@@ -27,7 +27,7 @@ app.use("/api/google", googleRoutes);
 app.use("/api/user", userRoutes);
 
 app.get("/", (req, res) => {
-  res.json({ success: true, message: "Server running 🚀" });
+  res.json({ success: true, message: "Server running " });
 });
 
 module.exports = app;
