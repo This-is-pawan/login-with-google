@@ -1,34 +1,42 @@
 import { useEffect, useState } from "react";
 import axiosInstance from "./axios";
+import { useAuth } from "./AuthContext";
 
 const Profile = () => {
+  const { auth, setAuth } = useAuth();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState(null); // 🔐 Access token in memory only
 
-  // ---------------- GET NEW ACCESS TOKEN ----------------
-  const refreshAccessToken = async () => {
+  // ---------- Refresh Token ----------
+  const refreshToken = async () => {
     try {
-      const res = await axiosInstance.post("/api/google/refresh");
-      const newToken = res.data.accessToken;
-      setToken(newToken); // store in memory
+      const res = await axiosInstance.post(
+        "/api/google/refresh",
+        {},
+        { withCredentials: true }
+      );
+
+      const newToken = res.data?.accessToken;
+      if (!newToken) return null;
+
+      setAuth({ accessToken: newToken });
       return newToken;
     } catch {
-      setToken(null);
+      setAuth(null);
       return null;
     }
   };
 
-  // ---------------- FETCH USER ----------------
-  const fetchUser = async (currentToken) => {
+  // ---------- Fetch User (Retry ONLY ONCE) ----------
+  const fetchUser = async () => {
     setLoading(true);
 
-    let accessToken = currentToken || token;
+    let token = auth?.accessToken;
 
-    // If no token → get new one
-    if (!accessToken) {
-      accessToken = await refreshAccessToken();
-      if (!accessToken) {
+    // 1. If no token → try refresh once
+    if (!token) {
+      token = await refreshToken();
+      if (!token) {
         setUser(null);
         setLoading(false);
         return;
@@ -37,17 +45,29 @@ const Profile = () => {
 
     try {
       const res = await axiosInstance.get("/api/user/me", {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       setUser(res.data.user);
     } catch (err) {
-      // If token expired → refresh and retry once
+      // 2. If token expired → retry ONLY once
       if (err.response?.status === 401) {
-        const newToken = await refreshAccessToken();
-        if (newToken) return fetchUser(newToken);
+        const newToken = await refreshToken();
+
+        if (newToken) {
+          try {
+            const retryRes = await axiosInstance.get("/api/user/me", {
+              headers: { Authorization: `Bearer ${newToken}` },
+            });
+
+            setUser(retryRes.data.user);
+          } catch {
+            setUser(null); // stop retry ❌
+          }
+        } else {
+          setUser(null);
+        }
+      } else {
         setUser(null);
       }
     } finally {
@@ -55,16 +75,12 @@ const Profile = () => {
     }
   };
 
-  // ---------------- LOGOUT ----------------
+  // ---------- Logout ----------
   const handleLogout = async () => {
-    try {
-      await axiosInstance.post("/api/google/logout");
-      setToken(null);
-      setUser(null);
-      window.location.href = "/";
-    } catch (err) {
-      console.error("Logout failed:", err);
-    }
+    await axiosInstance.post("/api/google/logout");
+    setAuth(null);
+    setUser(null);
+    window.location.href = "/";
   };
 
   useEffect(() => {
@@ -73,28 +89,45 @@ const Profile = () => {
 
   if (loading) return <h2>Loading...</h2>;
   if (!user) return <h2>Not Logged In</h2>;
+return (
+  <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 to-indigo-200">
+    <div className="bg-white shadow-xl rounded-2xl p-6 w-80 text-center border border-gray-200">
 
-  return (
-    <div className="p-4">
-      <img
-        src={user.photo}
-        alt="profile"
-        width={80}
-        style={{ borderRadius: "50%" }}
-        referrerPolicy="no-referrer"
-      />
+      {/* Profile Image */}
+      <div className="flex justify-center">
+        <img
+          src={user.photo}
+          alt="profile"
+          referrerPolicy="no-referrer"
+          className="w-24 h-24 rounded-full border-4 border-blue-400 shadow-md"
+        />
+      </div>
 
-      <h2 className="font-bold mt-2">{user.name}</h2>
-      <p>{user.email}</p>
+      {/* Name */}
+      <h2 className="mt-4 text-xl font-bold text-gray-800">
+        {user.name}
+      </h2>
 
+      {/* Email */}
+      <p className="text-gray-500 text-sm mt-1">
+        {user.email}
+      </p>
+
+      {/* Divider */}
+      <div className="my-4 border-t"></div>
+
+      {/* Logout Button */}
       <button
         onClick={handleLogout}
-        className="bg-red-600 text-white px-4 py-2 rounded mt-3"
+        className="w-full bg-blue-500 hover:bg-blue-600 transition duration-200 text-white font-semibold py-2 rounded-lg shadow-md"
       >
         Logout
       </button>
+
     </div>
-  );
+  </div>
+);
+
 };
 
 export default Profile;

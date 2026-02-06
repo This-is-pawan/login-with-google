@@ -8,9 +8,7 @@ const AuthSuccess = () => {
   const { setAuth } = useAuth();
 
   useEffect(() => {
-    let isMounted = true;
-
-    const getAccessToken = async () => {
+    const login = async () => {
       try {
         const res = await axiosInstance.post(
           "/api/google/refresh",
@@ -18,36 +16,20 @@ const AuthSuccess = () => {
           { withCredentials: true }
         );
 
-        const accessToken = res?.data?.accessToken;
+        const token = res.data?.accessToken;
+        if (!token) throw new Error();
 
-
-        if (accessToken && isMounted) {
-          // ✅ store in memory
-          setAuth({ accessToken });
-
-          navigate("/profile", { replace: true });
-        }
-      } catch (error) {
-        console.error("Auth success error:", error);
-
-        if (isMounted) {
-          navigate("/login", { replace: true });
-        }
+        setAuth({ accessToken: token }); // store globally
+        navigate("/profile", { replace: true });
+      } catch {
+        navigate("/login", { replace: true });
       }
     };
 
-    getAccessToken();
-
-    return () => {
-      isMounted = false;
-    };
+    login();
   }, [navigate, setAuth]);
 
-  return (
-    <div className="p-4 text-center">
-      <h2>Signing you in…</h2>
-    </div>
-  );
+  return <h2 style={{ textAlign: "center" }}>Signing you in...</h2>;
 };
 
 export default AuthSuccess;

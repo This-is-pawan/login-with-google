@@ -20,20 +20,17 @@ router.get("/login",passport.authenticate("google", {scope: ["profile", "email"]
 ========================= */
 router.get("/callback",passport.authenticate("google", {session: false,failureRedirect: "/login",}),async (req, res) => {
     try {
-      const user = req.user;
+      const user = req.user; 
        generateAccessToken(user._id);
-  
       const refreshToken = generateRefreshToken(user._id);
       user.refreshToken = refreshToken;
       await user.save();
-
       res.cookie("refreshToken", refreshToken, {
         httpOnly: true,
         secure: true,
         sameSite: "none",
         maxAge: 7 * 24 * 60 * 60 * 1000,
       });
-
       res.redirect(`${process.env.FRONTEND_URL}/auth-success`);
     } catch (err) {
       console.error(err);
